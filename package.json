@@ -1,0 +1,19 @@
+{
+  "name": "it-service-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anastasiia-zolochevska/it-service-bot.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/anastasiia-zolochevska/it-service-bot/issues"
+  },
+  "homepage": "https://github.com/anastasiia-zolochevska/it-service-bot#readme"
+}
