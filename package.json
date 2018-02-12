@@ -15,5 +15,11 @@
   "bugs": {
     "url": "https://github.com/anastasiia-zolochevska/it-service-bot/issues"
   },
-  "homepage": "https://github.com/anastasiia-zolochevska/it-service-bot#readme"
+  "homepage": "https://github.com/anastasiia-zolochevska/it-service-bot#readme",
+  "dependencies": {
+    "botbuilder": "^4.0.0-m1.4",
+    "botbuilder-ai": "^4.0.0-m1.2",
+    "botbuilder-services": "^4.0.0-m1.2",
+    "restify": "^6.3.4"
+  }
 }
