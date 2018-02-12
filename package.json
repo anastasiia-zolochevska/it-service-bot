@@ -21,5 +21,8 @@
     "botbuilder-ai": "^4.0.0-m1.2",
     "botbuilder-services": "^4.0.0-m1.2",
     "restify": "^6.3.4"
+  },
+  "devDependencies": {
+    "@types/restify": "^5.0.7"
   }
 }
