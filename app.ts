@@ -5,7 +5,7 @@ import *  as restify from 'restify';
 import { LuisRecognizer, QnAMaker, QnAMakerResult } from 'botbuilder-ai';
 
 import { processGreeting, processAgentCall, processHelp, processCancel } from './regexpProcessing';
-import { processOpenOrdersRequest, processClosedOrdersRequest } from './mockApi';
+import { processOpenOrdersRequest, processClosedOrdersRequest, callOrderService } from './mockApi';
 
 const appId = '992b6593-cf27-4486-925d-8d6a732eb57c';
 const subscriptionKey = '833384c5334b48aa8b6843518fc32a46';
@@ -41,7 +41,6 @@ const bot = new Bot(adapter)
     .use(new MemoryStorage())
     .use(new BotStateManager())
     .onReceive((context: BotContext) => {
-        console.log('context', context);
         if (context.request.type === 'conversationUpdate') {
             let botId = context.conversationReference.bot ? context.conversationReference.bot.id : -1;
             if (context.request.membersAdded && context.request.membersAdded.filter((obj) => { return obj.id == botId }).length == 0) {
@@ -50,16 +49,22 @@ const bot = new Bot(adapter)
             }
         }
         if (context.request.type === 'message') {
+
+            if (context.state.conversation && context.state.conversation.prompt) {
+                return orderComputerPromt(context);
+            }
+
             if (processGreeting(context) || processAgentCall(context) || processHelp(context) || processCancel(context)) {
                 return;
             }
-            
+
 
             return model.recognize(context)
                 .then((intents) => LuisRecognizer.findTopIntent(intents))
 
                 .then((intent) => {
-                    console.log(intent);
+                    // console.log(intent);nn
+                
                     let luisConfidenceLevel = 0.5;
                     if (intent && intent.score > luisConfidenceLevel && intent.name != "None") {
                         switch (intent.name) {
@@ -80,15 +85,12 @@ const bot = new Bot(adapter)
                         const utterance = context.request.text || '';
                         return qna.getAnswers(utterance)
                             .then((results: QnAMakerResult[]) => {
-                                console.log(results);
-                                if (results && results.length > 0 && results[0].score > 0.5) {
+                                // console.log(results);
+                                if (results && results.length > 0 && results[0].score > 0.9) {
                                     context.reply("QnA: " + results[0].answer);
                                 } else {
 
-                                    if (context.state.conversation && context.state.conversation.prompt) {
-                                        orderComputerPromt(context);
-                                        return;
-                                    }
+                                   
 
                                     context.reply(MessageStyler.attachment(
                                         CardStyler.heroCard(
@@ -106,8 +108,9 @@ const bot = new Bot(adapter)
     });
 
 
-     
+
 function orderComputerPromt(context: BotContext) {
+
     if (!context.state.conversation) {
         context.state.conversation = {};
     }
@@ -125,9 +128,38 @@ function orderComputerPromt(context: BotContext) {
     }
     else if (context.state.conversation.prompt === 'osVersion') {
         context.state.conversation['osVersion'] = context.request.text
+        context.state.conversation.prompt = 'confirmOrder';
         context.reply(`Got it. Platform: ${context.state.conversation['platform']}. Device class: ${context.state.conversation['deviceClass']}.  OS Version: ${context.state.conversation['osVersion']}.`);
-        context.state.conversation.prompt = undefined;
+        context.reply(MessageStyler.attachment(
+            CardStyler.heroCard(
+                'Do you confirm ordering it?',
+                [],
+                ['Yes', 'No']
+            )
+        ));
+
     }
+    else if (context.state.conversation.prompt === 'confirmOrder') {
+        let confirmation = context.request.text;
+        context.state.conversation['confirmOrder'] = confirmation;
+        if (confirmation && confirmation.toLowerCase() == "yes") {
+            context.reply(`Ok. Placing your order. It might take a while. I'll get back to you as soon as I get update about your order. Can I help with anything else meanwhile? `);
+
+            let reference = context.conversationReference;
+
+             callOrderService('2332', context.state.conversation['deviceClass'], context.state.conversation['osVersion'], context.state.conversation['platform']).then((ticketId: string) => {
+                bot.createContext(reference, (proactiveContext) => {proactiveContext.reply(`Got response. Your ticket id is ${ticketId}`)});
+    
+            })
+        }
+        else {
+            context.reply(`Ok. I see I didn't understand your request. Let's start from scratch`);
+        }
+        context.state.conversation.prompt = undefined;
+
+    }
+
+
 
 }
 
