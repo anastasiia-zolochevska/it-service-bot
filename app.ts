@@ -1,4 +1,4 @@
-import { Bot, MessageStyler, CardStyler } from 'botbuilder';
+import { Bot, MessageStyler, CardStyler, MemoryStorage, BotStateManager } from 'botbuilder';
 import { BotFrameworkAdapter } from 'botbuilder-services';
 import *  as restify from 'restify';
 
@@ -30,7 +30,7 @@ const qna = new QnAMaker({
     subscriptionKey: '640b8d79871a4b2382e99f71d25ef945',
     top: 4,
     scoreThreshold: 0.5
-});
+} as any);
 
 
 server.post('/api/messages', (adapter as any).listen());
@@ -38,10 +38,23 @@ server.post('/api/messages', (adapter as any).listen());
 
 
 const bot = new Bot(adapter)
+    .use(new MemoryStorage())
+    .use(new BotStateManager())
     .onReceive((context: BotContext) => {
         console.log('context', context);
+        if (context.request.type === 'conversationUpdate') {
+            let botId = context.conversationReference.bot ? context.conversationReference.bot.id : -1;
+            if (context.request.membersAdded && context.request.membersAdded.filter((obj) => { return obj.id == botId }).length == 0) {
+                context.reply("Hello!");
+                return;
+            }
+        }
         if (context.request.type === 'message') {
-            if(processGreeting(context) || processAgentCall(context) || processHelp(context)){
+            if (processGreeting(context) || processAgentCall(context) || processHelp(context)) {
+                return;
+            }
+            if (context.state.conversation && context.state.conversation.prompt) {
+                orderComputerPromt(context);
                 return;
             }
 
@@ -50,6 +63,7 @@ const bot = new Bot(adapter)
 
                 .then((intent) => {
                     console.log(intent);
+                    let luisConfidenceLevel = 0.5;
                     if (intent && intent.score > luisConfidenceLevel && intent.name != "None") {
                         switch (intent.name) {
                             case 'openOrders':
@@ -57,6 +71,9 @@ const bot = new Bot(adapter)
                                 break;
                             case 'closedOrders':
                                 context.reply(processClosedOrdersRequest());
+                                break;
+                            case 'orderComputer':
+                                orderComputerPromt(context);
                                 break;
                             default:
                                 context.reply(`Luis. Can't process intent: ${intent.name}`)
@@ -85,5 +102,30 @@ const bot = new Bot(adapter)
                 });
         }
     });
+
+
+function orderComputerPromt(context: BotContext) {
+    if (!context.state.conversation) {
+        context.state.conversation = {};
+    }
+    if (!context.state.conversation.prompt) {
+        context.state.conversation.prompt = 'platform';
+        context.reply(`What is the platform?`);
+    } else if (context.state.conversation.prompt === 'platform') {
+        context.state.conversation['platform'] = context.request.text
+        context.state.conversation.prompt = 'deviceClass';
+        context.reply(`Got it. You want ${context.request.text}. What's the device class?`);
+    } else if (context.state.conversation.prompt === 'deviceClass') {
+        context.state.conversation['deviceClass'] = context.request.text
+        context.reply(`Got it. You want ${context.request.text}. What's the OS version?`);
+        context.state.conversation.prompt = 'osVersion';
+    }
+    else if (context.state.conversation.prompt === 'osVersion') {
+        context.state.conversation['osVersion'] = context.request.text
+        context.reply(`Got it. Platform: ${context.state.conversation['platform']}. Device class: ${context.state.conversation['deviceClass']}.  OS Version: ${context.state.conversation['osVersion']}.`);
+        context.state.conversation.prompt = undefined;
+    }
+
+}
 
 
