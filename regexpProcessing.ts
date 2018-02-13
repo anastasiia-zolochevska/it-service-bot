@@ -1,35 +1,16 @@
-
 export function processHelp(context: BotContext) {
-    let helpRegexp = /^(Help|help)$/;
-    let message = context.request.text || '';
-    if (helpRegexp.test(message)) {
-        context.reply(` 
+    context.reply(` 
             List of commands can be run anytime        
             - Show my open orders
             - Show my closed orders
-            - I forgot my password
-    `);
-        return true;
-    }
-    return false;
+            - I forgot my password`);
 }
+
 export function processGreeting(context: BotContext) {
-    let greetingRegexp = /^(hi|Hi|HI|hI|hello|Hello|HELLO|greetings|Greetings|good morning|Good morning|Good Morning|good afternoon|Good afternoon|Good Afternoon|hi |Hi |HI |hI |hello |Hello |HELLO |greetings |Greetings |good morning |Good morning |Good Morning |good afternoon |Good afternoon |Good Afternoon )$/
-    let message = context.request.text || '';
-    if (greetingRegexp.test(message)) {
-        context.reply(`regexp: Hello! How can I help you?`);
-        return true;
-    }
-    return false;
+    context.reply(`regexp: Hello! How can I help you?`);
 }
 
 
 export function processAgentCall(context: BotContext) {
-    let agentRegexp = /^(Agent|agent|Connect to Agent)$/;
-    let message = context.request.text || '';
-    if (agentRegexp.test(message)) {
-        context.reply(`Agent service is not available yet `);
-        return true;
-    }
-    return false;
+    context.reply(`Agent service is not available yet `);
 }
