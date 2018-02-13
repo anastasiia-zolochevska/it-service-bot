@@ -5,8 +5,8 @@ import { LuisRecognizer, QnAMaker, QnAMakerResult } from 'botbuilder-ai';
 import *  as restify from 'restify';
 
 import { IntentRecognizerSet } from './intentRecognizerSet';
-import { processGreeting, processAgentCall, processHelp } from './regexpProcessing';
-import { processOpenOrdersRequest, processClosedOrdersRequest } from './mockApi';
+import { processGreeting, processAgentCall, processHelp, processCancel } from './regexpProcessing';
+import { processOpenOrdersRequest, processClosedOrdersRequest, callOrderService } from './mockApi';
 
 
 // Create regexp recognizer
@@ -56,7 +56,6 @@ const bot = new Bot(adapter)
     .use(new MemoryStorage())
     .use(new BotStateManager())
     .onReceive((context: BotContext) => {
-        console.log('context', context);
         if (context.request.type === 'conversationUpdate') {
             let botId = context.conversationReference.bot ? context.conversationReference.bot.id : -1;
             if (context.request.membersAdded && context.request.membersAdded.filter((obj) => { return obj.id == botId }).length == 0) {
@@ -65,6 +64,10 @@ const bot = new Bot(adapter)
             }
         }
         if (context.request.type === 'message') {
+            if (context.state.conversation && context.state.conversation.prompt) {
+                return orderComputerPromt(context);
+            }
+
             const utterance = context.request.text || '';
             return recognizerSet.recognize(context)
                 .then(intents => IntentRecognizer.findTopIntent(intents))
@@ -104,8 +107,7 @@ const bot = new Bot(adapter)
                             context.reply(processClosedOrdersRequest());
                             break;
                         case 'orderComputer':
-                            context.reply(`Need to handle orderComputer intent`);
-                            // orderComputerPromt(context);
+                            orderComputerPromt(context);
                             break;
                         default:
                             // This should never happen if you handle all possible intents
@@ -134,10 +136,32 @@ function orderComputerPromt(context: BotContext) {
     }
     else if (context.state.conversation.prompt === 'osVersion') {
         context.state.conversation['osVersion'] = context.request.text
+        context.state.conversation.prompt = 'confirmOrder';
         context.reply(`Got it. Platform: ${context.state.conversation['platform']}. Device class: ${context.state.conversation['deviceClass']}.  OS Version: ${context.state.conversation['osVersion']}.`);
+        context.reply(MessageStyler.attachment(
+            CardStyler.heroCard(
+                'Do you confirm ordering it?',
+                [],
+                ['Yes', 'No']
+            )
+        ));
+    }
+    else if (context.state.conversation.prompt === 'confirmOrder') {
+        let confirmation = context.request.text;
+        context.state.conversation['confirmOrder'] = confirmation;
+        if (confirmation && confirmation.toLowerCase() == "yes") {
+            context.reply(`Ok. Placing your order. It might take a while. I'll get back to you as soon as I get update about your order. Can I help with anything else meanwhile? `);
+
+            let reference = context.conversationReference;
+
+             callOrderService('2332', context.state.conversation['deviceClass'], context.state.conversation['osVersion'], context.state.conversation['platform']).then((ticketId: string) => {
+                bot.createContext(reference, (proactiveContext) => {proactiveContext.reply(`Got response. Your ticket id is ${ticketId}`)});
+    
+            })
+        }
+        else {
+            context.reply(`Ok. I see I didn't understand your request. Let's start from scratch`);
+        }
         context.state.conversation.prompt = undefined;
     }
-
 }
-
-
