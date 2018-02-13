@@ -4,7 +4,7 @@ import *  as restify from 'restify';
 
 import { LuisRecognizer, QnAMaker, QnAMakerResult } from 'botbuilder-ai';
 
-import { processGreeting, processAgentCall, processHelp } from './regexpProcessing';
+import { processGreeting, processAgentCall, processHelp, processCancel } from './regexpProcessing';
 import { processOpenOrdersRequest, processClosedOrdersRequest } from './mockApi';
 
 const appId = '992b6593-cf27-4486-925d-8d6a732eb57c';
@@ -50,13 +50,10 @@ const bot = new Bot(adapter)
             }
         }
         if (context.request.type === 'message') {
-            if (processGreeting(context) || processAgentCall(context) || processHelp(context)) {
+            if (processGreeting(context) || processAgentCall(context) || processHelp(context) || processCancel(context)) {
                 return;
             }
-            if (context.state.conversation && context.state.conversation.prompt) {
-                orderComputerPromt(context);
-                return;
-            }
+            
 
             return model.recognize(context)
                 .then((intents) => LuisRecognizer.findTopIntent(intents))
@@ -88,6 +85,11 @@ const bot = new Bot(adapter)
                                     context.reply("QnA: " + results[0].answer);
                                 } else {
 
+                                    if (context.state.conversation && context.state.conversation.prompt) {
+                                        orderComputerPromt(context);
+                                        return;
+                                    }
+
                                     context.reply(MessageStyler.attachment(
                                         CardStyler.heroCard(
                                             'We could not find an answer for you',
@@ -104,6 +106,7 @@ const bot = new Bot(adapter)
     });
 
 
+     
 function orderComputerPromt(context: BotContext) {
     if (!context.state.conversation) {
         context.state.conversation = {};
