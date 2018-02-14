@@ -4,6 +4,8 @@ import *  as restify from 'restify';
 
 import { LuisRecognizer, QnAMaker, QnAMakerResult } from 'botbuilder-ai';
 
+import { RootTopic } from './topics/rootTopic';
+
 import { processGreeting, processAgentCall, processHelp, processCancel } from './regexpProcessing';
 import { processOpenOrdersRequest, processClosedOrdersRequest, callOrderService } from './mockApi';
 

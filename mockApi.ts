@@ -35,12 +35,6 @@ export function callOrderService(userId:string, deviceClass:string, osVersion: s
 }
 
 
-interface Computer {
-    deviceClass: string;
-    osVersion: string;
-    platform: string;
-}
-
 interface Order {
     id: string;
     name: string;
