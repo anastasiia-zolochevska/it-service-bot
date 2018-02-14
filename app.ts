@@ -11,32 +11,32 @@ import { processGreeting, processAgentCall, processHelp, processCancel } from '.
 import { processOpenOrdersRequest, processClosedOrdersRequest, callOrderService } from './mockApi';
 
 
-// Create regexp recognizer
-let regExpRecognizer = new RegExpRecognizer()
-    .addIntent('HelpIntent', /^(help)$/i)
-    .addIntent('GreetIntent', /^(hi|hello|greetings|good morning|good afternoon)$/i)
-    .addIntent('AgentIntent', /^(agent|connect to agent)$/i);
+// // Create regexp recognizer
+// let regExpRecognizer = new RegExpRecognizer()
+//     .addIntent('HelpIntent', /^(help)$/i)
+//     .addIntent('GreetIntent', /^(hi|hello|greetings|good morning|good afternoon)$/i)
+//     .addIntent('AgentIntent', /^(agent|connect to agent)$/i);
 
-// Create LUIS recognizer
-const appId = '992b6593-cf27-4486-925d-8d6a732eb57c';
-const subscriptionKey = '833384c5334b48aa8b6843518fc32a46';
-let luisRecognizer: LuisRecognizer = new LuisRecognizer(appId, subscriptionKey);
+// // Create LUIS recognizer
+// const appId = '992b6593-cf27-4486-925d-8d6a732eb57c';
+// const subscriptionKey = '833384c5334b48aa8b6843518fc32a46';
+// let luisRecognizer: LuisRecognizer = new LuisRecognizer(appId, subscriptionKey);
 
-// Create QnA model
-const qna = new QnAMaker({
-    knowledgeBaseId: '0bda7583-c683-4b95-a8a5-d79166ad48c3',
-    subscriptionKey: '640b8d79871a4b2382e99f71d25ef945',
-    top: 4,
-    scoreThreshold: 0.5
-} as any);
+// // Create QnA model
+// const qna = new QnAMaker({
+//     knowledgeBaseId: '0bda7583-c683-4b95-a8a5-d79166ad48c3',
+//     subscriptionKey: '640b8d79871a4b2382e99f71d25ef945',
+//     top: 4,
+//     scoreThreshold: 0.5
+// } as any);
 
-// Create recognizer set with all recognizers
-const recognizerSet = new IntentRecognizerSet({
-    recognizeOrder: RecognizeOrder.series,
-    stopOnExactMatch: true
-})
-    .add(regExpRecognizer, 1.0)
-    .add(luisRecognizer, 0.5);
+// // Create recognizer set with all recognizers
+// const recognizerSet = new IntentRecognizerSet({
+//     recognizeOrder: RecognizeOrder.series,
+//     stopOnExactMatch: true
+// })
+//     .add(regExpRecognizer, 1.0)
+//     .add(luisRecognizer, 0.5);
 
 
 // Create server
@@ -66,56 +66,7 @@ const bot = new Bot(adapter)
             }
         }
         if (context.request.type === 'message') {
-            if (context.state.conversation && context.state.conversation.prompt) {
-                return orderComputerPromt(context);
-            }
-
-            const utterance = context.request.text || '';
-            return recognizerSet.recognize(context)
-                .then(intents => IntentRecognizer.findTopIntent(intents))
-                .then(topIntent => {
-                    console.log(`Intent: ${topIntent ? topIntent.name : 'no intent found'}`);
-
-                    if (!topIntent || topIntent.name === 'None') {
-                        // Call QnA Maker
-                        return qna.getAnswers(utterance)
-                            .then((results: QnAMakerResult[]) => {
-                                console.log(results);
-                                if (results.length > 0) {
-                                    // QnA Maker found a good answer
-                                    context.reply("QnA: " + results[0].answer);
-                                } else {
-                                    // QnA Maker didn't find a good answer
-                                    const card = CardStyler.heroCard('We could not find an answer for you', [], ['Connect to Agent']);
-                                    context.reply(MessageStyler.attachment(card));
-                                }
-                            });
-                    }
-
-                    switch (topIntent.name) {
-                        case 'HelpIntent':
-                            processHelp(context);
-                            break;
-                        case 'GreetIntent':
-                            processGreeting(context);
-                            break;
-                        case 'AgentIntent':
-                            processAgentCall(context);
-                            break;
-                        case 'openOrders':
-                            context.reply(processOpenOrdersRequest());
-                            break;
-                        case 'closedOrders':
-                            context.reply(processClosedOrdersRequest());
-                            break;
-                        case 'orderComputer':
-                            orderComputerPromt(context);
-                            break;
-                        default:
-                            // This should never happen if you handle all possible intents
-                            context.reply(`Unhandled intent: ${topIntent.name}`)
-                    }
-                });
+            return new RootTopic(context).onReceive(context);
         }
     });
 
@@ -156,10 +107,9 @@ function orderComputerPromt(context: BotContext) {
 
             let reference = context.conversationReference;
 
-             callOrderService('2332', context.state.conversation['deviceClass'], context.state.conversation['osVersion'], context.state.conversation['platform']).then((ticketId: string) => {
-                bot.createContext(reference, (proactiveContext) => {proactiveContext.reply(`Got response. Your ticket id is ${ticketId}`)});
-    
-            })
+            // callOrderService('2332', context.state.conversation['deviceClass'], context.state.conversation['osVersion'], context.state.conversation['platform']).then((ticketId: string) => {
+            //     bot.createContext(reference, (proactiveContext) => { proactiveContext.reply(`Got response. Your ticket id is ${ticketId}`) });
+            // })
         }
         else {
             context.reply(`Ok. I see I didn't understand your request. Let's start from scratch`);

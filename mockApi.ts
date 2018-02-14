@@ -1,3 +1,5 @@
+import { Computer } from "./model";
+
 export function processOpenOrdersRequest() {
     var orders = getOpenOrderS();
     let response = '';
@@ -26,10 +28,10 @@ export function processClosedOrdersRequest() {
 }
 
 
-export function callOrderService(userId:string, deviceClass:string, osVersion: string, platform:string): Promise<string>{
+export function callOrderService(userId:string, computer: Computer): Promise<string>{
 
     return  new Promise((resolve, reject) => 
-        setTimeout(resolve('52525'), 10000)
+        setTimeout(() =>resolve('52525'), 10000)
       );
 
 }
