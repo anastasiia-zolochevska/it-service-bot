@@ -29,10 +29,7 @@ export function processClosedOrdersRequest() {
 export function callOrderService(userId:string, deviceClass:string, osVersion: string, platform:string): Promise<string>{
 
     return  new Promise((resolve, reject) => 
-        setTimeout(() => {
-            console.log("---------------------------------------------Timer bla")
-            resolve('52525');
-        }, 10000)
+        setTimeout(resolve('52525'), 10000)
       );
 
 }
